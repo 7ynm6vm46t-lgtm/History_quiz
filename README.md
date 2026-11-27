@@ -1,5 +1,8 @@
 # ⏳ 타임점프 역사 퀴즈 (`history_quiz.html`)
 
+<img width="490" height="601" alt="스크린샷 2026-11-27 16 41 42" src="https://github.com/user-attachments/assets/cb931daa-04bc-406a-9b73-49b6aec20770" />
+<img width="491" height="620" alt="스크린샷 2026-11-27 16 41 26" src="https://github.com/user-attachments/assets/327f5257-32c0-48c2-bfc7-b930bfd0f9b4" />
+
 역사 입문자도 부담 없이 핵심 사건·인물부터 시대 흐름까지 익힐 수 있도록 만든 **단일 파일 기반 웹 퀴즈 게임**입니다. 한국사(조선전기·조선후기)와 세계사(유럽사)를 아우르며, 가벼운 게임 요소와 친절한 오답 해설을 결합했습니다.
 
 ---
