@@ -1,0 +1,1566 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>타임점프! 왕초보 역사 퀴즈</title>
+  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=Noto+Sans+KR:wght@400;500;700;800&display=swap" rel="stylesheet" />
+  <style>
+    body {
+      font-family: 'Noto Sans KR', 'Inter', sans-serif;
+      background: linear-gradient(135deg, #fdfbf7 0%, #f3f0ff 50%, #eef6ff 100%);
+      min-height: 100vh;
+      color: #1e293b;
+    }
+    .game-card {
+      background: rgba(255, 255, 255, 0.94);
+      backdrop-filter: blur(10px);
+      box-shadow: 0 12px 32px -8px rgba(79, 70, 229, 0.12), 0 2px 6px rgba(15, 23, 42, 0.04);
+    }
+    .btn-3d {
+      transition: transform 0.1s ease, box-shadow 0.1s ease;
+    }
+    .btn-3d:active:not(:disabled) {
+      transform: translateY(2px);
+    }
+    @keyframes popIn {
+      0% { transform: scale(0.95); opacity: 0; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+    .animate-pop {
+      animation: popIn 0.22s ease-out forwards;
+    }
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      20% { transform: translateX(-6px); }
+      40% { transform: translateX(6px); }
+      60% { transform: translateX(-4px); }
+      80% { transform: translateX(4px); }
+    }
+    .animate-shake {
+      animation: shake 0.35s ease-in-out;
+    }
+    .combo-pulse {
+      animation: popIn 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+  </style>
+</head>
+<body class="antialiased selection:bg-indigo-200 selection:text-indigo-900">
+  <div id="app" class="max-w-3xl mx-auto px-4 py-5 sm:py-8 min-h-screen flex flex-col">
+    <!-- Top Header -->
+    <header class="flex items-center justify-between gap-3 mb-5">
+      <button id="btn-home-logo" class="flex items-center gap-2.5 text-left group focus:outline-none">
+        <div class="w-10 h-10 rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-600 text-white flex items-center justify-center shadow-md group-hover:scale-105 transition-transform text-xl">
+          ⏳
+        </div>
+        <div>
+          <h1 class="text-lg sm:text-xl font-extrabold tracking-tight text-slate-900 leading-tight">타임점프 역사 퀴즈</h1>
+          <p class="text-xs text-slate-500 font-medium">왕초보도 술술 푸는 조선사·유럽사</p>
+        </div>
+      </button>
+
+      <div class="flex items-center gap-2">
+        <button id="btn-timeline-guide" class="px-3 py-2 rounded-xl bg-white/90 hover:bg-white border border-slate-200 text-xs sm:text-sm font-semibold text-slate-700 shadow-sm transition flex items-center gap-1.5" title="핵심 연표 미리보기">
+          <span>📜</span>
+          <span class="hidden sm:inline">핵심 연표</span>
+        </button>
+        <button id="btn-sound-toggle" class="px-3 py-2 rounded-xl bg-white/90 hover:bg-white border border-slate-200 text-xs sm:text-sm font-semibold text-slate-700 shadow-sm transition flex items-center gap-1.5" aria-label="효과음 켜기/끄기">
+          <span id="sound-icon">🔊</span>
+          <span id="sound-label" class="hidden sm:inline">효과음</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- Main Dynamic View Container -->
+    <main id="main-view" class="flex-1 flex flex-col"></main>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="fixed bottom-5 left-1/2 -translate-x-1/2 z-50 px-4 py-2.5 rounded-full bg-slate-900 text-white text-sm font-semibold shadow-xl opacity-0 pointer-events-none transition-opacity duration-200"></div>
+
+    <!-- Timeline Cheat-Sheet Modal -->
+    <div id="modal-guide" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
+      <div class="bg-white rounded-3xl max-w-2xl w-full max-h-[85vh] flex flex-col shadow-2xl overflow-hidden animate-pop">
+        <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-indigo-50/60">
+          <div>
+            <h2 class="text-lg font-extrabold text-slate-900">📜 왕초보 핵심 연표 한눈에 보기</h2>
+            <p class="text-xs text-slate-500">퀴즈 전에 흐름만 가볍게 훑어봐도 정답률이 쑥 올라가요!</p>
+          </div>
+          <button id="btn-close-guide" class="w-8 h-8 rounded-full bg-white hover:bg-slate-100 flex items-center justify-center text-slate-500 font-bold shadow-sm">✕</button>
+        </div>
+        <div class="p-5 overflow-y-auto space-y-5 text-sm">
+          <div>
+            <h3 class="font-extrabold text-indigo-700 mb-2 flex items-center gap-1.5"><span>🏯</span> 한국사 · 조선전기 (1392 ~ 1598)</h3>
+            <div class="space-y-1.5 border-l-2 border-indigo-200 pl-3.5">
+              <p><span class="font-bold text-slate-800">1392년</span> 조선 건국 (태조 이성계) & 한양 천도</p>
+              <p><span class="font-bold text-slate-800">1443년</span> 세종대왕 훈민정음 창제 (1446년 반포)</p>
+              <p><span class="font-bold text-slate-800">1485년</span> 성종 『경국대전』 완성 (통치 체제 확립)</p>
+              <p><span class="font-bold text-slate-800">1592년</span> 임진왜란 발발 (이순신 한산도 대첩)</p>
+            </div>
+          </div>
+          <div>
+            <h3 class="font-extrabold text-emerald-700 mb-2 flex items-center gap-1.5"><span>🏮</span> 한국사 · 조선후기 (1600년대 ~ 1800년대)</h3>
+            <div class="space-y-1.5 border-l-2 border-emerald-200 pl-3.5">
+              <p><span class="font-bold text-slate-800">1608년</span> 광해군 대동법 첫 실시 (특산물 → 쌀·베·동전)</p>
+              <p><span class="font-bold text-slate-800">1636년</span> 병자호란 (청 침입, 인조 남한산성 항전)</p>
+              <p><span class="font-bold text-slate-800">1750년</span> 영조 균역법 실시 (탕평책 + 군포 부담 절반 축소)</p>
+              <p><span class="font-bold text-slate-800">1796년</span> 정조 수원 화성 완공 (규장각, 정약용 거중기)</p>
+              <p><span class="font-bold text-slate-800">1811년</span> 홍경래의 난 (세도 정치와 지역 차별에 반발)</p>
+            </div>
+          </div>
+          <div>
+            <h3 class="font-extrabold text-amber-700 mb-2 flex items-center gap-1.5"><span>🏰</span> 세계사 · 유럽사 핵심 흐름</h3>
+            <div class="space-y-1.5 border-l-2 border-amber-200 pl-3.5">
+              <p><span class="font-bold text-slate-800">1215년</span> 영국 마그나 카르타(대헌장) — 왕도 법 아래에!</p>
+              <p><span class="font-bold text-slate-800">14~16세기</span> 르네상스 — 이탈리아 시작, 인간 중심 문예 부흥</p>
+              <p><span class="font-bold text-slate-800">1517년</span> 마르틴 루터 종교개혁 (95개조 반박문)</p>
+              <p><span class="font-bold text-slate-800">1688년</span> 영국 명예혁명 (1689년 권리장전, 입헌군주제 토대)</p>
+              <p><span class="font-bold text-slate-800">1760년대~</span> 영국 산업혁명 (제임스 와트 증기기관)</p>
+              <p><span class="font-bold text-slate-800">1789년</span> 프랑스 혁명 (바스티유 습격, 인권 선언)</p>
+              <p><span class="font-bold text-slate-800">1815년</span> 나폴레옹 워털루 전투 패배 & 빈 체제</p>
+            </div>
+          </div>
+        </div>
+        <div class="px-6 py-3 border-t border-slate-100 bg-slate-50 flex justify-end">
+          <button id="btn-close-guide-footer" class="px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm transition">확인했어요</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ==========================================
+    // 1. QUESTION BANK (조선전기, 조선후기, 유럽사)
+    // ==========================================
+    const QUESTIONS = [
+      // --- 조선전기 (초보) ---
+      {
+        id: 'je_01',
+        topic: 'joseon_early',
+        topicLabel: '조선전기',
+        level: 1,
+        levelLabel: '초보 · 핵심 인물',
+        type: 'choice',
+        question: '1392년 고려를 무너뜨리고 조선을 세운 인물은 누구일까요?',
+        choices: ['이성계 (태조)', '이방원 (태종)', '왕건 (태조)', '정도전'],
+        answerIndex: 0,
+        choiceExplanations: [
+          '태조 이성계는 1392년 조선을 건국한 정답 인물입니다.',
+          '이방원(태종)은 이성계의 다섯째 아들로, 왕자의 난을 거쳐 3대 왕에 올라 왕권을 크게 강화했지만 조선을 처음 세운 인물은 아닙니다.',
+          '왕건(태조)은 조선이 아니라 그 이전 왕조인 고려를 918년에 세운 인물이에요.',
+          '정도전은 이성계를 도와 조선 건국과 제도 설계를 이끈 핵심 책사였지만, 왕위에 오른 건국 군주는 이성계입니다.'
+        ],
+        hint: '위화도 회군을 주도한 무장 출신으로, 조선의 1대 왕이 되었어요.',
+        explanation: '태조 이성계는 1388년 위화도 회군으로 권력을 잡은 뒤, 1392년 조선을 건국하고 도읍을 한양으로 옮겼습니다. (정도전은 건국을 도운 핵심 개혁가예요!)'
+      },
+      {
+        id: 'je_02',
+        topic: 'joseon_early',
+        topicLabel: '조선전기',
+        level: 1,
+        levelLabel: '초보 · 핵심 사건',
+        type: 'choice',
+        question: '백성들이 글을 몰라 억울한 일을 겪지 않도록 세종대왕이 1443년에 창제한 문자는 무엇일까요?',
+        choices: ['이두', '훈민정음', '향찰', '팔만대장경'],
+        answerIndex: 1,
+        choiceExplanations: [
+          '이두는 삼국시대부터 한자의 음과 뜻을 빌려 우리말을 적던 표기법으로, 세종이 새로 만든 문자가 아닙니다.',
+          '훈민정음은 세종대왕이 1443년에 창제한 정답 문자입니다.',
+          '향찰은 신라 시대에 향가 등을 적기 위해 한자를 빌려 쓴 표기 체계로, 훈민정음보다 훨씬 이전 방식이에요.',
+          '팔만대장경은 문자가 아니라 고려 시대에 몽골 침입을 불력으로 막고자 만든 목판 대장경입니다.'
+        ],
+        hint: '"백성을 가르치는 바른 소리"라는 뜻이에요.',
+        explanation: '세종대왕은 1443년 훈민정음을 창제하고, 3년 뒤인 1446년에 온 나라에 반포했습니다. 오늘날 우리가 쓰는 한글의 뿌리예요.'
+      },
+      {
+        id: 'je_03',
+        topic: 'joseon_early',
+        topicLabel: '조선전기',
+        level: 1,
+        levelLabel: '초보 · 핵심 인물',
+        type: 'choice',
+        question: '1592년 임진왜란이 일어났을 때, 학익진 전술을 펼쳐 한산도 대첩을 이끈 장군은?',
+        choices: ['강감찬', '권율', '이순신', '최영'],
+        answerIndex: 2,
+        choiceExplanations: [
+          '강감찬은 조선이 아니라 고려 시대(1019년) 귀주대첩에서 거란군을 크게 물리친 장군이에요.',
+          '권율은 임진왜란 때 활약한 명장이지만, 육지 전투인 행주대첩(1593)을 이끌었고 한산도 대첩의 주역은 아닙니다.',
+          '이순신 장군은 한산도 대첩에서 학익진 전술로 승리를 거둔 정답 인물입니다.',
+          '최영은 고려 말 홍건적과 왜구를 물리친 장군으로, 이성계의 위화도 회군 때 숙청되어 조선 시대 인물이 아닙니다.'
+        ],
+        hint: '거북선과 함께 남해 바다를 지킨 조선 최고의 명장입니다.',
+        explanation: '이순신 장군은 1592년 임진왜란 당시 한산도 대첩 등에서 왜군의 보급로를 차단하며 조선을 지켜냈습니다. (권율은 행주대첩의 영웅이에요!)'
+      },
+      {
+        id: 'je_04',
+        topic: 'joseon_early',
+        topicLabel: '조선전기',
+        level: 1,
+        levelLabel: '초보 · 핵심 인물',
+        type: 'choice',
+        question: '세종 시대에 물시계(자격루), 해시계(앙부일구), 측우기 등 수많은 과학 기구를 만든 발명가는?',
+        choices: ['장영실', '김정호', '허준', '정약용'],
+        answerIndex: 0,
+        choiceExplanations: [
+          '장영실은 세종 시대에 자격루·앙부일구 등을 만든 정답 인물입니다.',
+          '김정호는 조선 후기(19세기)에 『대동여지도』를 제작한 지리학자예요.',
+          '허준은 선조~광해군 시기(16~17세기 초)에 활동한 의학자로, 의서 『동의보감』을 편찬했습니다.',
+          '정약용은 조선 후기 정조 시대의 대표 실학자로, 수원 화성 축성에 쓰인 거중기 등을 설계했습니다.'
+        ],
+        hint: '원래 노비 신분이었지만 뛰어난 재능으로 세종에게 발탁되었어요.',
+        explanation: '장영실은 세종의 전폭적인 지원 아래 자격루, 앙부일구, 혼천의 등을 제작해 조선 전기 과학 기술 발전을 이끌었습니다.'
+      },
+      // --- 조선전기 (흐름/심화) ---
+      {
+        id: 'je_05',
+        topic: 'joseon_early',
+        topicLabel: '조선전기',
+        level: 2,
+        levelLabel: '도약 · 제도 확립',
+        type: 'choice',
+        question: '세조 때 편찬을 시작해 1485년 성종 때 완성된, 조선의 기본 통치 법전은 무엇일까요?',
+        choices: ['삼국사기', '경국대전', '동의보감', '목민심서'],
+        answerIndex: 1,
+        choiceExplanations: [
+          '『삼국사기』는 고려 인종 때 김부식이 편찬한 삼국시대의 역사서로, 조선의 법전이 아닙니다.',
+          '『경국대전』은 1485년 성종 때 완성된 조선의 기본 통치 법전(정답)입니다.',
+          '『동의보감』은 선조~광해군 때 허준이 편찬한 의학 백과사전으로, 통치 법전이 아니에요.',
+          '『목민심서』는 조선 후기 정약용이 지방 수령(관리)의 바른 자세를 정리해 쓴 저서입니다.'
+        ],
+        hint: '나라를 다스리는 큰 법전이라는 뜻을 가지고 있어요.',
+        explanation: '1485년 성종 때 완성된 『경국대전』은 조선의 정치·경제·사회·군사 제도를 총정리한 최고 기본 법전으로, 조선 말기까지 통치의 기준이 되었습니다.'
+      },
+      {
+        id: 'je_06',
+        topic: 'joseon_early',
+        topicLabel: '조선전기',
+        level: 2,
+        levelLabel: '도약 · 시대 흐름',
+        type: 'choice',
+        question: '조선 전기 훈구파와 사림파가 대립하는 과정에서 사림이 큰 피해를 입었던 사건들을 무엇이라 부를까요?',
+        choices: ['예송 논쟁', '사화 (무오·갑자·기묘·을사사화)', '세도 정치', '신미양요'],
+        answerIndex: 1,
+        choiceExplanations: [
+          '예송 논쟁은 조선 후기 현종 때 왕실의 상복 입는 기간을 두고 서인과 남인이 벌인 정치적 논쟁이에요.',
+          '사화는 연산군~명종 시기에 사림파가 피해를 입은 정답 사건입니다.',
+          '세도 정치는 조선 후기 순조·헌종·철종 시기에 안동 김씨 등 외척 가문이 권력을 독점한 정치 형태입니다.',
+          '신미양요는 1871년 흥선대원군 집권기(고종)에 미국 군함이 강화도를 침략한 사건이에요.'
+        ],
+        hint: '"선비들이 화를 입었다"는 뜻의 두 글자예요.',
+        explanation: '15세기 말~16세기 중반 연산군~명종 시기에 기존 권력층(훈구파)과 신진 세력(사림파)이 부딪히며 4차례의 사화가 일어났지만, 결국 사림이 정국을 주도하게 됩니다.'
+      },
+      {
+        id: 'je_07',
+        topic: 'joseon_early',
+        topicLabel: '조선전기',
+        level: 3,
+        levelLabel: '마스터 · 연표 흐름',
+        type: 'timeline',
+        question: '조선 전기의 주요 사건을 오래된 순서(과거 → 최근)대로 나열해 보세요!',
+        items: [
+          { id: 't_je1', text: '태조 이성계, 조선 건국', year: '1392년' },
+          { id: 't_je2', text: '세종, 훈민정음 창제', year: '1443년' },
+          { id: 't_je3', text: '성종, 『경국대전』 완성', year: '1485년' },
+          { id: 't_je4', text: '임진왜란 발발', year: '1592년' }
+        ],
+        correctOrder: ['t_je1', 't_je2', 't_je3', 't_je4'],
+        hint: '건국 → 한글 창제 → 법전 완성 → 큰 전쟁 순서로 떠올려 보세요!',
+        explanation: '조선 건국(1392) 후 세종 때 한글이 만들어지고(1443), 성종 때 법전 『경국대전』이 완성되어(1485) 나라의 기틀이 잡힌 뒤, 약 100년 후 임진왜란(1592)이 일어났습니다.'
+      },
+
+      // --- 조선후기 (초보) ---
+      {
+        id: 'jl_01',
+        topic: 'joseon_late',
+        topicLabel: '조선후기',
+        level: 1,
+        levelLabel: '초보 · 핵심 사건',
+        type: 'choice',
+        question: '1636년 청나라의 침입으로 인조가 남한산성에서 맞서 싸우다 삼전도에서 항복한 전쟁은?',
+        choices: ['임진왜란', '정유재란', '병자호란', '병인양요'],
+        answerIndex: 2,
+        choiceExplanations: [
+          '임진왜란은 조선 전기 끝자락인 1592년 일본(도요토미 히데요시)이 조선을 침략한 전쟁이에요.',
+          '정유재란은 임진왜란 휴전 결렬 후 1597년 일본이 다시 쳐들어온 전쟁입니다.',
+          '병자호란은 1636년 청나라의 침입으로 일어난 정답 전쟁입니다.',
+          '병인양요는 1866년 흥선대원군 때 천주교 박해를 구실로 프랑스가 강화도를 침략한 사건이에요.'
+        ],
+        hint: '1636년 병자년에 일어난 호란이에요.',
+        explanation: '병자호란(1636~1637)은 청 태종 홍타이지의 침입으로 일어났으며, 인조가 남한산성에서 47일간 항전하다 결국 삼전도에서 항복했습니다.'
+      },
+      {
+        id: 'jl_02',
+        topic: 'joseon_late',
+        topicLabel: '조선후기',
+        level: 1,
+        levelLabel: '초보 · 핵심 제도',
+        type: 'choice',
+        question: '집집마다 특산물을 바치던 공납의 폐단을 없애기 위해, 토지 면적에 따라 쌀·베·동전으로 내게 한 제도는?',
+        choices: ['대동법', '과전법', '노비안검법', '호패법'],
+        answerIndex: 0,
+        choiceExplanations: [
+          '대동법은 특산물 대신 토지 면적 기준으로 쌀·베·동전을 내게 한 정답 제도입니다.',
+          '과전법은 고려 말(1391년) 신진 사대부가 경제 기반을 마련하기 위해 만든 토지 제도예요.',
+          '노비안검법은 고려 광종(10세기)이 호족 세력을 약화시키기 위해 불법 노비를 풀어준 제도입니다.',
+          '호패법은 조선 태종 때 백성의 신분을 확인하고 인구를 파악하기 위해 시행한 신분증 제도예요.'
+        ],
+        hint: '광해군 때 경기도에서 시작되어 약 100년에 걸쳐 전국으로 확대되었어요.',
+        explanation: '대동법(1608년 시작)은 방납의 폐단으로 고통받던 백성들의 부담을 덜어주었고, 국가가 필요한 물건을 대신 사들이는 과정에서 공인(상인)이 성장하는 계기가 되었습니다.'
+      },
+      {
+        id: 'jl_03',
+        topic: 'joseon_late',
+        topicLabel: '조선후기',
+        level: 1,
+        levelLabel: '초보 · 핵심 인물',
+        type: 'choice',
+        question: '붕당의 대립을 누그러뜨리기 위해 영조와 정조가 인재를 고루 등용하려 펼친 정치는?',
+        choices: ['쇄국 정책', '탕평책', '무신 정권', '세도 정치'],
+        answerIndex: 1,
+        choiceExplanations: [
+          '쇄국 정책(통상 수교 거부 정책)은 19세기 후반 흥선대원군이 서양 세력의 침입을 막기 위해 펼친 대외 정책입니다.',
+          '탕평책은 영조와 정조가 붕당의 대립을 누그러뜨리기 위해 펼친 정답 정치입니다.',
+          '무신 정권은 고려 중기(1170~1270)에 무신들이 정변을 일으켜 정권을 잡았던 시기를 말해요.',
+          '세도 정치는 정조 사후 19세기에 일부 외척 가문이 권력을 독점하며 부패가 심해진 정치 형태입니다.'
+        ],
+        hint: '"어느 한쪽에 치우치지 않고 공평하게 대한다"는 뜻이에요.',
+        explanation: '영조와 정조는 붕당 간의 극심한 싸움을 막기 위해 탕평책을 실시해 왕권을 강화하고 사회 개혁을 추진했습니다.'
+      },
+      {
+        id: 'jl_04',
+        topic: 'joseon_late',
+        topicLabel: '조선후기',
+        level: 1,
+        levelLabel: '초보 · 핵심 문화',
+        type: 'choice',
+        question: '정조가 아버지 사도세자의 묘를 옮기면서, 정약용의 거중기 등을 활용해 1796년 완공한 신도시는?',
+        choices: ['경주 불국사', '수원 화성', '남한산성', '강화산성'],
+        answerIndex: 1,
+        choiceExplanations: [
+          '경주 불국사는 통일신라 시대에 창건된 대표 불교 사찰로, 정조의 신도시와는 무관해요.',
+          '수원 화성은 정조가 1796년 완공한 개혁의 상징 신도시(정답)입니다.',
+          '남한산성은 인조 때 병자호란 당시 왕이 피신해 항전했던 산성이에요.',
+          '강화산성은 고려가 몽골 침입에 맞서 수도를 옮겼을 때 쌓은 성곽입니다.'
+        ],
+        hint: '오늘날 경기도 수원에 있는 유네스코 세계문화유산이에요.',
+        explanation: '수원 화성은 정조의 개혁 정치를 상징하는 계획도시로, 정약용이 설계한 거중기와 녹로 등 당시 최신 과학 기술이 총동원되었습니다.'
+      },
+      // --- 조선후기 (흐름/심화) ---
+      {
+        id: 'jl_05',
+        topic: 'joseon_late',
+        topicLabel: '조선후기',
+        level: 2,
+        levelLabel: '도약 · 사회 개혁',
+        type: 'choice',
+        question: '1750년 영조가 백성들의 군역(군포) 부담을 1년에 2필에서 1필로 절반 줄여준 개혁 제도는?',
+        choices: ['균역법', '영정법', '전시과', '지계 발급'],
+        answerIndex: 0,
+        choiceExplanations: [
+          '균역법은 1750년 영조가 백성들의 군포 부담을 절반으로 줄여준 정답 제도입니다.',
+          '영정법은 인조 때 풍흉과 관계없이 토지 1결당 쌀 4두로 전세(땅 세금)를 고정해 준 제도예요.',
+          '전시과는 고려 시대에 관리들에게 등급에 따라 토지와 임야를 나누어 주던 토지 제도입니다.',
+          '지계 발급은 대한제국 시기(광무개혁, 1898~1904)에 근대적 토지 소유권 문서를 만들어 준 사업이에요.'
+        ],
+        hint: '군역 부담을 "고르게(균)" 줄여준 법이라는 뜻이에요.',
+        explanation: '영조는 1750년 균역법을 실시해 농민들의 군포 부담을 절반으로 줄여주었고, 부족해진 세금은 어세·염세·선박세와 결작 등으로 보충했습니다.'
+      },
+      {
+        id: 'jl_06',
+        topic: 'joseon_late',
+        topicLabel: '조선후기',
+        level: 2,
+        levelLabel: '도약 · 시대 흐름',
+        type: 'choice',
+        question: '정조 사후 외척 가문이 권력을 독점한 세도 정치 시기에, 평안도 지역 차별과 수탈에 맞서 1811년 일어난 봉기는?',
+        choices: ['만적의 난', '홍경래의 난', '갑신정변', '이괄의 난'],
+        answerIndex: 1,
+        choiceExplanations: [
+          '만적의 난은 고려 무신 정권기(1198년)에 최충헌의 사노비 만적이 신분 해방을 외치며 모의한 사건이에요.',
+          '홍경래의 난은 1811년 세도 정치와 서북인 차별에 반발해 일어난 정답 봉기입니다.',
+          '갑신정변은 1884년 김옥균 등 급진 개화파가 청의 간섭을 끊고 근대 국가를 세우려 일으킨 정변이에요.',
+          '이괄의 난은 1624년 인조반정 논공행상에 불만을 품은 이괄이 일으킨 반란으로, 세도 정치보다 훨씬 앞선 시기입니다.'
+        ],
+        hint: '몰락 양반 출신 홍경래가 주도하여 청천강 이북 지역을 장악했어요.',
+        explanation: '1811년 홍경래의 난은 세도 정치의 부정부패와 서북인(평안도)에 대한 차별에 반발해 일어난 대규모 농민 봉기로, 이후 전국적인 농민 항쟁의 신호탄이 되었습니다.'
+      },
+      {
+        id: 'jl_07',
+        topic: 'joseon_late',
+        topicLabel: '조선후기',
+        level: 3,
+        levelLabel: '마스터 · 연표 흐름',
+        type: 'timeline',
+        question: '조선 후기의 주요 사건을 오래된 순서(과거 → 최근)대로 배치해 보세요!',
+        items: [
+          { id: 't_jl1', text: '병자호란 발발 (남한산성 항전)', year: '1636년' },
+          { id: 't_jl2', text: '영조, 균역법 실시', year: '1750년' },
+          { id: 't_jl3', text: '정조, 수원 화성 완공', year: '1796년' },
+          { id: 't_jl4', text: '세도 정치기, 홍경래의 난', year: '1811년' }
+        ],
+        correctOrder: ['t_jl1', 't_jl2', 't_jl3', 't_jl4'],
+        hint: '전쟁(호란) → 영조 개혁 → 정조 개혁 → 정조 사후 세도정치 반발 순이에요!',
+        explanation: '17세기 병자호란(1636) 이후 18세기에 영조(균역법, 1750)와 정조(수원 화성, 1796)의 부흥기가 이어졌고, 19세기 세도 정치에 맞서 홍경래의 난(1811)이 일어났습니다.'
+      },
+
+      // --- 세계사: 유럽사 (초보) ---
+      {
+        id: 'eu_01',
+        topic: 'europe',
+        topicLabel: '유럽사',
+        level: 1,
+        levelLabel: '초보 · 핵심 문화',
+        type: 'choice',
+        question: '14세기 이탈리아에서 시작되어 신 중심의 중세에서 벗어나 인간과 고대 그리스·로마 문화를 되살리려 한 운동은?',
+        choices: ['십자군 전쟁', '르네상스', '계몽사상', '낭만주의'],
+        answerIndex: 1,
+        choiceExplanations: [
+          '십자군 전쟁은 11~13세기에 서유럽 기독교 세계가 성지 예루살렘을 되찾기 위해 벌인 종교 전쟁이에요.',
+          '르네상스는 14세기 이탈리아에서 시작된 인간 중심의 문예 부흥 운동(정답)입니다.',
+          '계몽사상은 18세기에 이성과 과학으로 사회의 모순을 개혁하려 한 사상으로, 르네상스보다 후대예요.',
+          '낭만주의는 18세기 말~19세기 초 계몽주의의 지나친 이성 강조에 반발해 감정과 상상력을 중시한 예술 사조입니다.'
+        ],
+        hint: '"재생", "부흥"이라는 뜻을 가진 프랑스어에서 유래했어요. 다빈치와 미켈란젤로가 활약했죠.',
+        explanation: '르네상스(14~16세기)는 이탈리아 피렌체 등에서 시작된 문예 부흥 운동으로, 인간 중심의 인문주의를 바탕으로 예술과 과학이 크게 발전했습니다.'
+      },
+      {
+        id: 'eu_02',
+        topic: 'europe',
+        topicLabel: '유럽사',
+        level: 1,
+        levelLabel: '초보 · 핵심 사건',
+        type: 'choice',
+        question: '1517년 교황의 면벌부 판매를 비판하며 「95개조 반박문」을 발표해 종교개혁을 일으킨 인물은?',
+        choices: ['갈릴레오 갈릴레이', '마르틴 루터', '로베스피에르', '나폴레옹'],
+        answerIndex: 1,
+        choiceExplanations: [
+          '갈릴레오 갈릴레이는 지동설을 지지하고 망원경으로 천체를 관측한 이탈리아의 과학자예요.',
+          '마르틴 루터는 1517년 「95개조 반박문」을 발표해 종교개혁을 일으킨 정답 인물입니다.',
+          '로베스피에르는 18세기 말 프랑스 혁명 당시 급진파(자코뱅파)를 이끌며 공포 정치를 펼친 정치가예요.',
+          '나폴레옹은 프랑스 혁명 이후 등장해 유럽을 정복하고 황제에 오른 프랑스의 군인이자 정치가입니다.'
+        ],
+        hint: '독일 비텐베르크의 수도사 출신이에요.',
+        explanation: '마르틴 루터가 1517년 발표한 「95개조 반박문」은 로마 가톨릭 교회의 부패를 비판하며 유럽 전역으로 종교개혁(개신교 탄생)이 퍼지는 계기가 되었습니다.'
+      },
+      {
+        id: 'eu_03',
+        topic: 'europe',
+        topicLabel: '유럽사',
+        level: 1,
+        levelLabel: '초보 · 핵심 사건',
+        type: 'choice',
+        question: '1789년 파리 시민들이 바스티유 감옥을 습격하며 시작되었고, 「인간과 시민의 권리 선언」을 낳은 사건은?',
+        choices: ['영국 청교도 혁명', '프랑스 혁명', '러시아 혁명', '미국 독립 전쟁'],
+        answerIndex: 1,
+        choiceExplanations: [
+          '영국 청교도 혁명(1642~1649)은 찰스 1세의 전제 정치에 맞서 크롬웰과 의회가 일으킨 혁명으로, 프랑스 혁명보다 140여 년 앞섭니다.',
+          '프랑스 혁명은 1789년 바스티유 감옥 습격과 인권 선언을 낳은 정답 사건입니다.',
+          '러시아 혁명은 1917년 제1차 세계대전 중에 일어나 세계 최초의 사회주의 국가를 세운 혁명이에요.',
+          '미국 독립 전쟁(1775~1783)은 북아메리카 식민지가 영국의 지배에서 벗어나 독립을 쟁취한 전쟁입니다.'
+        ],
+        hint: '자유·평등·박애의 정신으로 유럽의 절대왕정을 흔든 대혁명이에요.',
+        explanation: '1789년 프랑스 혁명은 구제도(앙시앵 레짐)의 모순에 맞서 시민들이 일으킨 혁명으로, 자유와 평등, 국민 주권의 원칙을 담은 인권 선언을 발표했습니다.'
+      },
+      {
+        id: 'eu_04',
+        topic: 'europe',
+        topicLabel: '유럽사',
+        level: 1,
+        levelLabel: '초보 · 핵심 변화',
+        type: 'choice',
+        question: '18세기 후반 영국에서 시작되어 제임스 와트의 증기기관 개량 등으로 기계 대량 생산 시대를 연 변화는?',
+        choices: ['농업 혁명', '산업 혁명', '지리상 발견', '종교 전쟁'],
+        answerIndex: 1,
+        choiceExplanations: [
+          '농업 혁명은 신석기 시대에 인류가 농사를 짓기 시작하며 정착 생활을 하게 된 거대한 변화를 주로 뜻해요.',
+          '산업 혁명은 18세기 후반 영국에서 증기기관 등을 통해 기계 대량 생산 시대를 연 정답 변화입니다.',
+          '지리상 발견(신항로 개척)은 15~16세기 콜럼버스나 바스쿠 다 가마 등이 대양을 항해하며 신대륙과 새 바닷길을 찾은 사건이에요.',
+          '종교 전쟁(30년 전쟁 등)은 16~17세기 유럽에서 가톨릭과 개신교 세력이 맞붙어 싸운 전쟁을 말합니다.'
+        ],
+        hint: '공장과 철도가 늘어나며 인류의 생활 방식이 완전히 바뀌었어요.',
+        explanation: '영국에서 가장 먼저 시작된 산업혁명은 증기기관과 방적기 등의 발명으로 수공업에서 공장제 기계공업으로 전환되며 근대 자본주의 사회를 열었습니다.'
+      },
+      // --- 유럽사 (흐름/심화) ---
+      {
+        id: 'eu_05',
+        topic: 'europe',
+        topicLabel: '유럽사',
+        level: 2,
+        levelLabel: '도약 · 민주주의 뿌리',
+        type: 'choice',
+        question: '1215년 영국 귀족들이 존 왕의 무리한 세금 징수에 맞서 서명하게 만든, "왕도 법을 지켜야 한다"는 문서는?',
+        choices: ['마그나 카르타 (대헌장)', '베스트팔렌 조약', '나폴레옹 법전', '권리 장전'],
+        answerIndex: 0,
+        choiceExplanations: [
+          '마그나 카르타(대헌장)는 1215년 영국 존 왕의 권력을 법으로 제한한 정답 문서입니다.',
+          '베스트팔렌 조약은 1648년 30년 전쟁을 마무리하며 각국의 주권과 신앙의 자유를 인정한 국제 조약이에요.',
+          '나폴레옹 법전(1804)은 나폴레옹이 프랑스 혁명의 성과(법 앞의 평등, 사유재산 보호 등)를 정리해 만든 근대 민법전입니다.',
+          '권리 장전(1689)은 영국 명예혁명 직후 의회의 권리를 확정한 문서로, 마그나 카르타보다 470여 년 뒤에 나왔어요.'
+        ],
+        hint: '라틴어로 "위대한 헌장"이라는 뜻이에요.',
+        explanation: '1215년 마그나 카르타(대헌장)는 국왕의 권력을 법으로 제한하고 의회 동의 없는 과세를 막아, 훗날 영국 의회 정치와 입헌주의의 출발점이 되었습니다.'
+      },
+      {
+        id: 'eu_06',
+        topic: 'europe',
+        topicLabel: '유럽사',
+        level: 2,
+        levelLabel: '도약 · 시대 흐름',
+        type: 'choice',
+        question: '1688년 영국에서 피를 흘리지 않고 전제 군주(제임스 2세)를 몰아낸 뒤, 의회 중심 입헌군주제의 토대가 된 「권리장전」을 승인받은 사건은?',
+        choices: ['명예혁명', '2월 혁명', '차티스트 운동', '7년 전쟁'],
+        answerIndex: 0,
+        choiceExplanations: [
+          '명예혁명은 1688년 피를 흘리지 않고 전제 군주를 몰아낸 뒤 권리장전을 승인받은 정답 사건입니다.',
+          '2월 혁명은 1848년 프랑스에서 노동자와 시민이 선거권 확대를 요구하며 일으킨 혁명으로, 유럽 전역에 영향을 주었어요.',
+          '차티스트 운동은 19세기 전반(1830~1840년대) 영국 노동자들이 보통 선거권을 요구하며 벌인 참정권 확대 운동입니다.',
+          '7년 전쟁(1756~1763)은 18세기 중반 유럽 열강과 식민지를 두고 영국·프랑스 등이 맞붙은 국제 전쟁이에요.'
+        ],
+        hint: '피를 흘리지 않고 성공해 "명예로운" 혁명이라고 불렸어요.',
+        explanation: '1688년 명예혁명과 이듬해(1689년) 승인된 「권리장전」으로 영국은 국왕이 군림하되 통치하지 않는 의회 중심 입헌군주제의 기틀을 확고히 다졌습니다.'
+      },
+      {
+        id: 'eu_07',
+        topic: 'europe',
+        topicLabel: '유럽사',
+        level: 2,
+        levelLabel: '도약 · 시대 흐름',
+        type: 'choice',
+        question: '프랑스 혁명의 혼란 속에서 황제에 오른 나폴레옹이 영국을 고립시키기 위해 1806년에 내린 조치는 무엇일까요?',
+        choices: ['인클로저 운동', '대륙 봉쇄령', '먼로 선언', '게르만 대이동'],
+        answerIndex: 1,
+        choiceExplanations: [
+          '인클로저 운동은 16~18세기 영국에서 지주들이 양을 기르거나 대농장을 만들려고 농지에 울타리를 쳐 농민을 내몬 현상이에요.',
+          '대륙 봉쇄령은 나폴레옹이 영국을 경제적으로 고립시키기 위해 1806년 내린 정답 조치입니다.',
+          '먼로 선언(1823)은 미국 먼로 대통령이 유럽과 아메리카 대륙의 상호 불간섭을 선언한 외교 원칙이에요.',
+          '게르만 대이동은 4세기 말 훈족의 압박을 받은 게르만족이 로마 제국 영토로 대거 이동하며 중세 유럽의 시작을 연 사건입니다.'
+        ],
+        hint: '유럽 대륙 국가들이 영국과 무역하지 못하게 막은 명령이에요.',
+        explanation: '나폴레옹은 해군력이 강한 영국을 경제적으로 굴복시키려 대륙 봉쇄령을 내렸지만, 이를 어긴 러시아를 원정하다(1812) 크게 패배하며 몰락의 길을 걷게 됩니다.'
+      },
+      {
+        id: 'eu_08',
+        topic: 'europe',
+        topicLabel: '유럽사',
+        level: 3,
+        levelLabel: '마스터 · 연표 흐름',
+        type: 'timeline',
+        question: '유럽사의 큰 흐름! 다음 사건을 오래된 순서(과거 → 최근)대로 맞춰 보세요.',
+        items: [
+          { id: 't_eu1', text: '영국 마그나 카르타(대헌장) 승인', year: '1215년' },
+          { id: 't_eu2', text: '마르틴 루터, 종교개혁 시작', year: '1517년' },
+          { id: 't_eu3', text: '영국 명예혁명 발발', year: '1688년' },
+          { id: 't_eu4', text: '프랑스 혁명 발발', year: '1789년' }
+        ],
+        correctOrder: ['t_eu1', 't_eu2', 't_eu3', 't_eu4'],
+        hint: '중세 왕권 제한(13세기) → 종교개혁(16세기) → 영국 시민혁명(17세기) → 프랑스 혁명(18세기) 순서예요!',
+        explanation: '1215년 마그나 카르타로 왕권 제한의 싹이 튼 뒤, 1517년 루터의 종교개혁, 1688년 영국 명예혁명, 그리고 1789년 프랑스 혁명으로 시민의 자유와 권리가 확장되었습니다.'
+      },
+
+      // --- 통합 흐름 보너스 (동서양 동시대 비교!) ---
+      {
+        id: 'mix_01',
+        topic: 'europe',
+        topicLabel: '유럽사 · 동서양 비교',
+        level: 3,
+        levelLabel: '마스터 · 동시대 흐름',
+        type: 'choice',
+        question: '조선에서 정조가 수원 화성을 완공하며 문예 부흥을 이끌던 1790년대 무렵, 프랑스에서는 어떤 대사건이 진행 중이었을까요?',
+        choices: ['백년 전쟁', '프랑스 혁명', '제1차 세계대전', '십자군 전쟁'],
+        answerIndex: 1,
+        choiceExplanations: [
+          '백년 전쟁은 14~15세기(1337~1453) 영국과 프랑스가 왕위 계승과 영토를 두고 싸운 중세 전쟁이에요.',
+          '프랑스 혁명은 1789년 시작되어 정조의 수원 화성 완공(1796)과 동시대에 진행된 정답 사건입니다.',
+          '제1차 세계대전은 1914년에 발발한 20세기의 세계 대전으로, 조선 시대가 끝난 일제강점기 무렵이에요.',
+          '십자군 전쟁은 11~13세기(고려 시대 무렵)에 유럽과 이슬람 세계 사이에서 벌어진 종교 전쟁입니다.'
+        ],
+        hint: '수원 화성 완공은 1796년, 이 혁명은 1789년에 시작되었어요!',
+        explanation: '정조 재위기(1776~1800)는 세계사적으로 미국 독립(1776)과 프랑스 혁명(1789)이 일어나 근대 시민사회가 열리던 격변기와 정확히 겹칩니다.'
+      }
+    ];
+
+    // ==========================================
+    // 2. SOUND ENGINE (Web Audio API, no external files)
+    // ==========================================
+    const SoundFX = {
+      ctx: null,
+      enabled: true,
+      init() {
+        if (!this.ctx) {
+          const AudioCtx = window.AudioContext || window.webkitAudioContext;
+          if (AudioCtx) this.ctx = new AudioCtx();
+        }
+        if (this.ctx && this.ctx.state === 'suspended') {
+          this.ctx.resume().catch(() => {});
+        }
+      },
+      playTone(freq, duration, type = 'sine', delay = 0, vol = 0.14) {
+        if (!this.enabled) return;
+        this.init();
+        if (!this.ctx) return;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = type;
+        osc.frequency.setValueAtTime(freq, this.ctx.currentTime + delay);
+        gain.gain.setValueAtTime(vol, this.ctx.currentTime + delay);
+        gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + delay + duration);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start(this.ctx.currentTime + delay);
+        osc.stop(this.ctx.currentTime + delay + duration);
+      },
+      correct() {
+        this.playTone(523.25, 0.12, 'triangle', 0);
+        this.playTone(659.25, 0.14, 'triangle', 0.08);
+        this.playTone(783.99, 0.22, 'triangle', 0.16);
+      },
+      wrong() {
+        this.playTone(240, 0.15, 'sawtooth', 0, 0.09);
+        this.playTone(190, 0.24, 'sawtooth', 0.12, 0.09);
+      },
+      click() {
+        this.playTone(440, 0.05, 'sine', 0, 0.06);
+      },
+      levelUp() {
+        [523.25, 659.25, 783.99, 1046.5].forEach((f, idx) => {
+          this.playTone(f, 0.2, 'triangle', idx * 0.09, 0.15);
+        });
+      }
+    };
+
+    // ==========================================
+    // 3. STATE & PERSISTENCE
+    // ==========================================
+    const STORAGE_KEY = 'timejump_history_quiz_v1';
+
+    const DEFAULT_PROFILE = {
+      xp: 0,
+      bestCombo: 0,
+      totalSolved: 0,
+      totalCorrect: 0,
+      wrongIds: []
+    };
+
+    function loadProfile() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) return { ...DEFAULT_PROFILE };
+        const parsed = JSON.parse(raw);
+        return {
+          xp: Number(parsed.xp) || 0,
+          bestCombo: Number(parsed.bestCombo) || 0,
+          totalSolved: Number(parsed.totalSolved) || 0,
+          totalCorrect: Number(parsed.totalCorrect) || 0,
+          wrongIds: Array.isArray(parsed.wrongIds) ? parsed.wrongIds : []
+        };
+      } catch (e) {
+        return { ...DEFAULT_PROFILE };
+      }
+    }
+
+    function saveProfile(profile) {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(profile));
+      } catch (e) {}
+    }
+
+    function getLevelInfo(xp) {
+      const levels = [
+        { lv: 1, title: '역사 새싹 🌱', min: 0, next: 300 },
+        { lv: 2, title: '호기심 탐험가 🧭', min: 300, next: 700 },
+        { lv: 3, title: '사건 수집가 📜', min: 700, next: 1300 },
+        { lv: 4, title: '시대 항해사 ⛵', min: 1300, next: 2100 },
+        { lv: 5, title: '타임점프 마스터 👑', min: 2100, next: 99999 }
+      ];
+      let current = levels[0];
+      for (const l of levels) {
+        if (xp >= l.min) current = l;
+      }
+      const span = Math.max(1, current.next - current.min);
+      const pct = current.lv === 5 ? 100 : Math.min(100, Math.round(((xp - current.min) / span) * 100));
+      return { ...current, pct };
+    }
+
+    const state = {
+      view: 'home', // 'home' | 'quiz' | 'result'
+      profile: loadProfile(),
+      settings: {
+        topic: 'all', // 'all' | 'joseon_early' | 'joseon_late' | 'europe'
+        difficulty: 'progressive', // 'progressive' | '1' | '2' | '3'
+        count: 7
+      },
+      session: {
+        mode: 'normal', // 'normal' | 'retry'
+        questions: [],
+        index: 0,
+        score: 0,
+        combo: 0,
+        maxCombo: 0,
+        correctCount: 0,
+        earnedXp: 0,
+        prevLevel: 1,
+        hintUsed: false,
+        answered: false,
+        lastCorrect: false,
+        correctMessage: '',
+        selectedChoice: null,
+        // For timeline questions
+        timelinePool: [],
+        timelineSlots: [],
+        wrongInSession: []
+      }
+    };
+
+    // ==========================================
+    // 4. HELPERS
+    // ==========================================
+    function shuffle(arr) {
+      const copy = [...arr];
+      for (let i = copy.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [copy[i], copy[j]] = [copy[j], copy[i]];
+      }
+      return copy;
+    }
+
+    const CORRECT_MESSAGES = [
+      '🎊 정답이에요! 수능 만점급 완벽한 풀이!',
+      '🚀 완벽해요! 역사의 흐름을 딱 꿰뚫었네요!',
+      '👑 대단해요! 이 기세면 {SUBJECT} 마스터!',
+      '✨ 딩동댕! 시간여행자 자격 충분하십니다!'
+    ];
+
+    function pickCorrectMessage(q) {
+      const subject = q && q.topic === 'europe' ? '세계사' : '한국사';
+      const msg = CORRECT_MESSAGES[Math.floor(Math.random() * CORRECT_MESSAGES.length)];
+      return msg.replace('{SUBJECT}', subject);
+    }
+
+    function celebrateLikeCSATPerfect() {
+      if (typeof confetti !== 'function') return;
+      const colors = ['#6366f1', '#f59e0b', '#10b981', '#ec4899', '#3b82f6', '#fbbf24'];
+      // 1차: 중앙 초대형 폭죽 + 별 모양 꽃가루
+      confetti({
+        particleCount: 110,
+        spread: 100,
+        startVelocity: 48,
+        origin: { x: 0.5, y: 0.6 },
+        colors
+      });
+      confetti({
+        particleCount: 40,
+        spread: 120,
+        shapes: ['star'],
+        scalar: 1.35,
+        origin: { x: 0.5, y: 0.55 },
+        colors: ['#fbbf24', '#f59e0b', '#fde047']
+      });
+      // 2차: 양쪽 대포 연발 (0.18초 뒤)
+      setTimeout(() => {
+        confetti({
+          particleCount: 70,
+          angle: 60,
+          spread: 75,
+          startVelocity: 55,
+          origin: { x: 0.05, y: 0.72 },
+          colors
+        });
+        confetti({
+          particleCount: 70,
+          angle: 120,
+          spread: 75,
+          startVelocity: 55,
+          origin: { x: 0.95, y: 0.72 },
+          colors
+        });
+      }, 180);
+      // 3차: 마무리 황금 샤워 (0.45초 뒤)
+      setTimeout(() => {
+        confetti({
+          particleCount: 85,
+          spread: 140,
+          startVelocity: 35,
+          gravity: 0.85,
+          origin: { x: 0.5, y: 0.35 },
+          colors
+        });
+      }, 450);
+    }
+
+    function showToast(msg) {
+      const el = document.getElementById('toast');
+      el.textContent = msg;
+      el.classList.remove('opacity-0');
+      el.classList.add('opacity-100');
+      clearTimeout(showToast._t);
+      showToast._t = setTimeout(() => {
+        el.classList.remove('opacity-100');
+        el.classList.add('opacity-0');
+      }, 2200);
+    }
+
+    function topicBadgeClass(topic) {
+      if (topic === 'joseon_early') return 'bg-indigo-100 text-indigo-700 border-indigo-200';
+      if (topic === 'joseon_late') return 'bg-emerald-100 text-emerald-700 border-emerald-200';
+      return 'bg-amber-100 text-amber-800 border-amber-200';
+    }
+
+    function buildQuestionList(mode) {
+      if (mode === 'retry') {
+        const list = QUESTIONS.filter(q => state.profile.wrongIds.includes(q.id));
+        return shuffle(list);
+      }
+
+      let pool = QUESTIONS.filter(q => state.settings.topic === 'all' || q.topic === state.settings.topic);
+
+      if (state.settings.difficulty === 'progressive') {
+        // Sort by level ascending (Lv.1 초보 -> Lv.2 도약 -> Lv.3 연표), shuffling within each level
+        const lv1 = shuffle(pool.filter(q => q.level === 1));
+        const lv2 = shuffle(pool.filter(q => q.level === 2));
+        const lv3 = shuffle(pool.filter(q => q.level === 3));
+        const combined = [...lv1, ...lv2, ...lv3];
+        const targetCount = state.settings.count === 99 ? combined.length : Math.min(state.settings.count, combined.length);
+        // Ensure progressive feel even for 5 or 7 questions: pick proportional mix from lv1 -> lv2 -> lv3
+        if (targetCount >= combined.length) return combined;
+        const pick1 = Math.max(1, Math.round(targetCount * 0.5));
+        const pick3 = Math.max(1, Math.round(targetCount * 0.25));
+        const pick2 = Math.max(0, targetCount - pick1 - pick3);
+        let picked = [
+          ...lv1.slice(0, pick1),
+          ...lv2.slice(0, pick2),
+          ...lv3.slice(0, pick3)
+        ];
+        // Fill if any level had fewer items
+        const usedIds = new Set(picked.map(q => q.id));
+        for (const q of combined) {
+          if (picked.length >= targetCount) break;
+          if (!usedIds.has(q.id)) {
+            picked.push(q);
+            usedIds.add(q.id);
+          }
+        }
+        return picked.sort((a, b) => a.level - b.level);
+      } else {
+        const lv = Number(state.settings.difficulty);
+        pool = shuffle(pool.filter(q => q.level === lv));
+        const targetCount = state.settings.count === 99 ? pool.length : Math.min(state.settings.count, pool.length);
+        return pool.slice(0, targetCount);
+      }
+    }
+
+    function startSession(mode = 'normal') {
+      SoundFX.click();
+      const questions = buildQuestionList(mode);
+      if (questions.length === 0) {
+        showToast(mode === 'retry' ? '복습할 오답이 아직 없어요!' : '선택한 조건에 맞는 문제가 없어요.');
+        return;
+      }
+      const lvInfo = getLevelInfo(state.profile.xp);
+      state.view = 'quiz';
+      state.session = {
+        mode,
+        questions,
+        index: 0,
+        score: 0,
+        combo: 0,
+        maxCombo: 0,
+        correctCount: 0,
+        earnedXp: 0,
+        prevLevel: lvInfo.lv,
+        hintUsed: false,
+        answered: false,
+        lastCorrect: false,
+        selectedChoice: null,
+        timelinePool: [],
+        timelineSlots: [],
+        wrongInSession: []
+      };
+      prepareCurrentQuestion();
+      render();
+    }
+
+    function prepareCurrentQuestion() {
+      const q = state.session.questions[state.session.index];
+      state.session.hintUsed = false;
+      state.session.answered = false;
+      state.session.lastCorrect = false;
+      state.session.correctMessage = '';
+      state.session.selectedChoice = null;
+      if (q && q.type === 'timeline') {
+        state.session.timelinePool = shuffle(q.items);
+        state.session.timelineSlots = [];
+      }
+    }
+
+    // ==========================================
+    // 5. QUIZ ACTIONS
+    // ==========================================
+    function handleChoiceAnswer(choiceIdx) {
+      if (state.session.answered) return;
+      const q = state.session.questions[state.session.index];
+      state.session.selectedChoice = choiceIdx;
+      const isCorrect = choiceIdx === q.answerIndex;
+      finalizeAnswer(isCorrect, q);
+    }
+
+    function handleTimelinePick(itemId) {
+      if (state.session.answered) return;
+      SoundFX.click();
+      const idx = state.session.timelinePool.findIndex(item => item.id === itemId);
+      if (idx === -1) return;
+      const [item] = state.session.timelinePool.splice(idx, 1);
+      state.session.timelineSlots.push(item);
+      render();
+    }
+
+    function handleTimelineRemove(itemId) {
+      if (state.session.answered) return;
+      SoundFX.click();
+      const idx = state.session.timelineSlots.findIndex(item => item.id === itemId);
+      if (idx === -1) return;
+      const [item] = state.session.timelineSlots.splice(idx, 1);
+      state.session.timelinePool.push(item);
+      render();
+    }
+
+    function handleTimelineReset() {
+      if (state.session.answered) return;
+      SoundFX.click();
+      const q = state.session.questions[state.session.index];
+      state.session.timelinePool = shuffle(q.items);
+      state.session.timelineSlots = [];
+      render();
+    }
+
+    function handleTimelineSubmit() {
+      if (state.session.answered) return;
+      const q = state.session.questions[state.session.index];
+      if (state.session.timelineSlots.length !== q.items.length) {
+        showToast('모든 사건 카드를 순서대로 배치해 주세요!');
+        return;
+      }
+      const userOrder = state.session.timelineSlots.map(item => item.id);
+      const isCorrect = userOrder.every((id, i) => id === q.correctOrder[i]);
+      finalizeAnswer(isCorrect, q);
+    }
+
+    function finalizeAnswer(isCorrect, q) {
+      state.session.answered = true;
+      state.session.lastCorrect = isCorrect;
+      state.profile.totalSolved += 1;
+
+      if (isCorrect) {
+        SoundFX.correct();
+        state.session.combo += 1;
+        state.session.maxCombo = Math.max(state.session.maxCombo, state.session.combo);
+        state.session.correctCount += 1;
+
+        const basePoints = q.level === 3 ? 150 : q.level === 2 ? 120 : 100;
+        const hintPenalty = state.session.hintUsed ? 25 : 0;
+        const comboBonus = (state.session.combo - 1) * 20;
+        const gained = Math.max(50, basePoints - hintPenalty + comboBonus);
+
+        state.session.score += gained;
+        const xpGain = Math.round(gained * 0.5);
+        state.session.earnedXp += xpGain;
+        state.profile.xp += xpGain;
+        state.profile.totalCorrect += 1;
+        state.profile.bestCombo = Math.max(state.profile.bestCombo, state.session.combo);
+
+        // Remove from wrongIds if mastered in retry or normal mode
+        state.profile.wrongIds = state.profile.wrongIds.filter(id => id !== q.id);
+
+        state.session.correctMessage = pickCorrectMessage(q);
+        celebrateLikeCSATPerfect();
+      } else {
+        SoundFX.wrong();
+        state.session.combo = 0;
+        state.session.wrongInSession.push({
+          ...q,
+          userSelectedChoice: state.session.selectedChoice,
+          userTimelineSlots: q.type === 'timeline' ? [...state.session.timelineSlots] : null
+        });
+        if (!state.profile.wrongIds.includes(q.id)) {
+          state.profile.wrongIds.push(q.id);
+        }
+      }
+
+      saveProfile(state.profile);
+      render();
+    }
+
+    function nextQuestion() {
+      SoundFX.click();
+      if (state.session.index + 1 < state.session.questions.length) {
+        state.session.index += 1;
+        prepareCurrentQuestion();
+        render();
+      } else {
+        finishSession();
+      }
+    }
+
+    function finishSession() {
+      state.view = 'result';
+      const newLv = getLevelInfo(state.profile.xp).lv;
+      if (newLv > state.session.prevLevel) {
+        SoundFX.levelUp();
+        if (typeof confetti === 'function') {
+          confetti({ particleCount: 90, spread: 80, origin: { y: 0.6 } });
+        }
+      } else if (state.session.correctCount >= Math.ceil(state.session.questions.length * 0.7) && typeof confetti === 'function') {
+        confetti({ particleCount: 55, spread: 65, origin: { y: 0.65 } });
+      }
+      render();
+    }
+
+    // ==========================================
+    // 6. RENDERING
+    // ==========================================
+    function render() {
+      const container = document.getElementById('main-view');
+      if (state.view === 'home') {
+        container.innerHTML = renderHome();
+        bindHomeEvents();
+      } else if (state.view === 'quiz') {
+        container.innerHTML = renderQuiz();
+        bindQuizEvents();
+      } else {
+        container.innerHTML = renderResult();
+        bindResultEvents();
+      }
+    }
+
+    function renderHome() {
+      const lv = getLevelInfo(state.profile.xp);
+      const accuracy = state.profile.totalSolved > 0
+        ? Math.round((state.profile.totalCorrect / state.profile.totalSolved) * 100)
+        : 0;
+      const wrongCount = state.profile.wrongIds.length;
+
+      const topics = [
+        { id: 'all', label: '전체 혼합', sub: '조선사 + 유럽사', icon: '🌍' },
+        { id: 'joseon_early', label: '조선전기', sub: '건국 ~ 임진왜란', icon: '🏯' },
+        { id: 'joseon_late', label: '조선후기', sub: '병자호란 ~ 세도정치', icon: '🏮' },
+        { id: 'europe', label: '유럽사', sub: '르네상스 ~ 프랑스혁명', icon: '🏰' }
+      ];
+
+      const diffs = [
+        { id: 'progressive', label: '단계별 자동 상승 (추천)', desc: '초보 인물·사건부터 시작해 마지막엔 연표 흐름까지!' },
+        { id: '1', label: 'Lv.1 왕초보', desc: '꼭 알아야 할 핵심 사건과 대표 인물 위주' },
+        { id: '2', label: 'Lv.2 도약', desc: '제도와 시대적 배경·인과관계 이해하기' },
+        { id: '3', label: 'Lv.3 연표 마스터', desc: '사건의 앞뒤 순서 맞추기 집중 공략' }
+      ];
+
+      const counts = [
+        { val: 5, label: '5문제 (가볍게)' },
+        { val: 7, label: '7문제 (딱 좋아요)' },
+        { val: 99, label: '전체 풀기' }
+      ];
+
+      return `
+        <div class="space-y-4 animate-pop">
+          <!-- Player Status Card -->
+          <section class="game-card rounded-3xl p-5 border border-white/80">
+            <div class="flex flex-wrap items-center justify-between gap-3 mb-3">
+              <div class="flex items-center gap-3">
+                <div class="w-12 h-12 rounded-2xl bg-indigo-100 text-indigo-700 font-extrabold flex items-center justify-center text-lg shadow-inner">
+                  Lv.${lv.lv}
+                </div>
+                <div>
+                  <div class="text-sm font-extrabold text-slate-900">${lv.title}</div>
+                  <div class="text-xs text-slate-500">누적 경험치 <span class="font-bold text-indigo-600">${state.profile.xp} XP</span></div>
+                </div>
+              </div>
+              <div class="flex items-center gap-3 text-xs font-semibold">
+                <div class="px-3 py-1.5 rounded-xl bg-amber-50 text-amber-800 border border-amber-200/70">
+                  🔥 최고 ${state.profile.bestCombo}콤보
+                </div>
+                <div class="px-3 py-1.5 rounded-xl bg-emerald-50 text-emerald-800 border border-emerald-200/70">
+                  🎯 정답률 ${accuracy}%
+                </div>
+              </div>
+            </div>
+            <div class="w-full h-2.5 bg-slate-100 rounded-full overflow-hidden">
+              <div class="h-full bg-gradient-to-r from-indigo-500 to-violet-500 rounded-full transition-all duration-500" style="width: ${lv.pct}%"></div>
+            </div>
+            <div class="flex justify-between text-[11px] text-slate-400 font-medium mt-1.5">
+              <span>현재 레벨 진행도</span>
+              <span>${lv.lv === 5 ? '최고 레벨 달성!' : `다음 레벨까지 ${Math.max(0, lv.next - state.profile.xp)} XP`}</span>
+            </div>
+          </section>
+
+          <!-- Quiz Setup Card -->
+          <section class="game-card rounded-3xl p-5 sm:p-6 border border-white/80 space-y-5">
+            <!-- Topic Picker -->
+            <div>
+              <h2 class="text-sm font-extrabold text-slate-800 mb-2.5">1. 어떤 시대를 탐험할까요?</h2>
+              <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                ${topics.map(t => {
+                  const active = state.settings.topic === t.id;
+                  return `
+                    <button data-topic="${t.id}" class="topic-btn p-3 rounded-2xl border-2 text-left transition ${active ? 'border-indigo-500 bg-indigo-50/80 shadow-sm' : 'border-slate-100 bg-white hover:border-indigo-200'}">
+                      <div class="text-xl mb-1">${t.icon}</div>
+                      <div class="text-sm font-bold ${active ? 'text-indigo-900' : 'text-slate-800'}">${t.label}</div>
+                      <div class="text-[11px] text-slate-500 leading-tight mt-0.5">${t.sub}</div>
+                    </button>
+                  `;
+                }).join('')}
+              </div>
+            </div>
+
+            <!-- Difficulty Picker -->
+            <div>
+              <h2 class="text-sm font-extrabold text-slate-800 mb-2.5">2. 난이도를 골라주세요</h2>
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                ${diffs.map(d => {
+                  const active = state.settings.difficulty === d.id;
+                  return `
+                    <button data-diff="${d.id}" class="diff-btn p-3 rounded-2xl border-2 text-left transition ${active ? 'border-violet-500 bg-violet-50/70 shadow-sm' : 'border-slate-100 bg-white hover:border-violet-200'}">
+                      <div class="text-sm font-bold ${active ? 'text-violet-900' : 'text-slate-800'}">${d.label}</div>
+                      <div class="text-xs text-slate-500 mt-0.5">${d.desc}</div>
+                    </button>
+                  `;
+                }).join('')}
+              </div>
+            </div>
+
+            <!-- Count Picker -->
+            <div class="flex flex-wrap items-center justify-between gap-3 pt-1">
+              <span class="text-sm font-extrabold text-slate-800">3. 문제 수</span>
+              <div class="flex flex-wrap gap-2">
+                ${counts.map(c => {
+                  const active = state.settings.count === c.val;
+                  return `
+                    <button data-count="${c.val}" class="count-btn px-3.5 py-1.5 rounded-xl text-xs font-bold border transition ${active ? 'bg-slate-900 text-white border-slate-900' : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'}">
+                      ${c.label}
+                    </button>
+                  `;
+                }).join('')}
+              </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="pt-2 flex flex-col sm:flex-row gap-3">
+              <button id="btn-start-quiz" class="btn-3d flex-1 py-3.5 px-6 rounded-2xl bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 text-white font-extrabold text-base shadow-lg shadow-indigo-500/25 flex items-center justify-center gap-2">
+                <span>🚀</span>
+                <span>퀴즈 시작하기</span>
+              </button>
+              <button id="btn-start-retry" class="btn-3d sm:w-auto py-3.5 px-5 rounded-2xl font-bold text-sm border-2 flex items-center justify-center gap-2 transition ${wrongCount > 0 ? 'border-rose-300 bg-rose-50 text-rose-700 hover:bg-rose-100' : 'border-slate-200 bg-slate-50 text-slate-400 cursor-not-allowed'}">
+                <span>🔁</span>
+                <span>틀린 문제 다시 풀기 (${wrongCount})</span>
+              </button>
+            </div>
+          </section>
+        </div>
+      `;
+    }
+
+    function renderQuiz() {
+      const s = state.session;
+      const q = s.questions[s.index];
+      const total = s.questions.length;
+      const progressPct = Math.round(((s.index + (s.answered ? 1 : 0)) / total) * 100);
+
+      let bodyHtml = '';
+      if (q.type === 'choice') {
+        bodyHtml = `
+          <div class="grid grid-cols-1 gap-2.5 mt-5">
+            ${q.choices.map((c, idx) => {
+              let cls = 'border-slate-200 bg-white hover:border-indigo-400 hover:bg-indigo-50/40 text-slate-800';
+              let badge = `<span class="w-7 h-7 rounded-lg bg-slate-100 text-slate-600 font-bold text-xs flex items-center justify-center shrink-0">${idx + 1}</span>`;
+              if (s.answered) {
+                if (idx === q.answerIndex) {
+                  cls = 'border-emerald-500 bg-emerald-50 text-emerald-900 ring-2 ring-emerald-200';
+                  badge = `<span class="w-7 h-7 rounded-lg bg-emerald-500 text-white font-bold text-xs flex items-center justify-center shrink-0">✓</span>`;
+                } else if (idx === s.selectedChoice) {
+                  cls = 'border-rose-400 bg-rose-50 text-rose-900 animate-shake';
+                  badge = `<span class="w-7 h-7 rounded-lg bg-rose-500 text-white font-bold text-xs flex items-center justify-center shrink-0">✕</span>`;
+                } else {
+                  cls = 'border-slate-100 bg-slate-50/70 text-slate-400';
+                }
+              }
+              return `
+                <button data-choice="${idx}" ${s.answered ? 'disabled' : ''} class="choice-btn btn-3d w-full p-3.5 sm:p-4 rounded-2xl border-2 text-left font-semibold text-sm sm:text-base flex items-center gap-3 transition ${cls}">
+                  ${badge}
+                  <span class="flex-1">${c}</span>
+                </button>
+              `;
+            }).join('')}
+          </div>
+        `;
+      } else {
+        // Timeline UI
+        const slotsHtml = q.items.map((_, idx) => {
+          const placed = s.timelineSlots[idx];
+          if (placed) {
+            let slotStyle = 'border-indigo-400 bg-indigo-50 text-indigo-900';
+            let yearTag = '';
+            if (s.answered) {
+              const isSlotRight = placed.id === q.correctOrder[idx];
+              slotStyle = isSlotRight ? 'border-emerald-500 bg-emerald-50 text-emerald-900' : 'border-rose-400 bg-rose-50 text-rose-900';
+              yearTag = `<span class="text-xs font-extrabold px-2 py-0.5 rounded-md bg-white/80 ml-2">${placed.year}</span>`;
+            }
+            return `
+              <button data-remove-id="${placed.id}" ${s.answered ? 'disabled' : ''} class="tl-slot-btn w-full p-3 rounded-2xl border-2 text-left flex items-center justify-between gap-2 transition ${slotStyle}">
+                <div class="flex items-center gap-2.5">
+                  <span class="w-6 h-6 rounded-full bg-indigo-600 text-white text-xs font-extrabold flex items-center justify-center shrink-0">${idx + 1}</span>
+                  <span class="text-sm font-bold">${placed.text}</span>
+                </div>
+                <div class="flex items-center">
+                  ${yearTag}
+                  ${!s.answered ? '<span class="text-xs text-indigo-400 font-bold ml-2">빼기 ✕</span>' : ''}
+                </div>
+              </button>
+            `;
+          }
+          return `
+            <div class="w-full p-3 rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50/60 text-slate-400 text-xs sm:text-sm font-medium flex items-center gap-2.5">
+              <span class="w-6 h-6 rounded-full bg-slate-200 text-slate-500 text-xs font-bold flex items-center justify-center shrink-0">${idx + 1}</span>
+              <span>${idx === 0 ? '가장 오래된 사건을 클릭해 넣으세요' : idx === q.items.length - 1 ? '가장 최근 사건을 클릭해 넣으세요' : `${idx + 1}번째 순서 사건`}</span>
+            </div>
+          `;
+        }).join('');
+
+        const poolHtml = s.timelinePool.map(item => `
+          <button data-pick-id="${item.id}" ${s.answered ? 'disabled' : ''} class="tl-pool-btn btn-3d px-3.5 py-2.5 rounded-xl border-2 border-slate-200 bg-white hover:border-indigo-400 hover:bg-indigo-50/50 text-sm font-bold text-slate-800 shadow-sm transition text-left">
+            + ${item.text}
+          </button>
+        `).join('');
+
+        bodyHtml = `
+          <div class="mt-4 space-y-4">
+            <div class="space-y-2">
+              <div class="flex items-center justify-between text-xs font-bold text-slate-500 px-1">
+                <span>⏳ 시간 순서 슬롯 (1번이 가장 옛날!)</span>
+                ${!s.answered && s.timelineSlots.length > 0 ? '<button id="btn-tl-reset" class="text-indigo-600 hover:underline">순서 초기화</button>' : ''}
+              </div>
+              <div class="space-y-2">${slotsHtml}</div>
+            </div>
+
+            ${!s.answered && s.timelinePool.length > 0 ? `
+              <div>
+                <div class="text-xs font-bold text-slate-500 mb-2 px-1">👇 아래 사건 카드를 순서대로 클릭하세요</div>
+                <div class="flex flex-wrap gap-2">${poolHtml}</div>
+              </div>
+            ` : ''}
+
+            ${!s.answered ? `
+              <button id="btn-tl-submit" ${s.timelineSlots.length !== q.items.length ? 'disabled' : ''} class="btn-3d w-full py-3.5 rounded-2xl font-extrabold text-sm sm:text-base transition ${s.timelineSlots.length === q.items.length ? 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-md' : 'bg-slate-200 text-slate-400 cursor-not-allowed'}">
+                연표 정답 확인하기
+              </button>
+            ` : ''}
+          </div>
+        `;
+      }
+
+      const wrongChoiceDetailHtml = (!s.lastCorrect && q.type === 'choice' && s.selectedChoice !== null && q.choiceExplanations) ? `
+        <div class="mt-2.5 mb-3 p-3.5 rounded-xl bg-white/90 border border-rose-200 text-xs sm:text-sm space-y-1">
+          <div class="font-extrabold text-rose-700">🧐 내가 고른 오답 분석: "${q.choices[s.selectedChoice]}"</div>
+          <p class="text-slate-700 leading-relaxed">${q.choiceExplanations[s.selectedChoice]}</p>
+        </div>
+      ` : '';
+
+      const wrongTimelineDetailHtml = (!s.lastCorrect && q.type === 'timeline') ? `
+        <div class="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs">
+          <div class="p-3 rounded-xl bg-white/85 border border-rose-200 space-y-1">
+            <div class="font-extrabold text-rose-700 mb-1">❌ 내가 배치한 순서 (실제 연도)</div>
+            ${s.timelineSlots.map((it, i) => {
+              const isMatch = it.id === q.correctOrder[i];
+              return `<div class="${isMatch ? 'text-emerald-700' : 'text-rose-700 font-semibold'}">${i + 1}. ${it.text} <span class="font-bold">(${it.year})</span></div>`;
+            }).join('')}
+          </div>
+          <div class="p-3 rounded-xl bg-white/95 border border-emerald-200 space-y-1">
+            <div class="font-extrabold text-emerald-700 mb-1">✅ 올바른 연표 순서</div>
+            ${q.correctOrder.map((id, i) => {
+              const it = q.items.find(x => x.id === id);
+              return `<div class="text-slate-800"><span class="font-bold">${i + 1}.</span> ${it.text} <span class="text-indigo-600 font-bold">(${it.year})</span></div>`;
+            }).join('')}
+          </div>
+        </div>
+      ` : '';
+
+      const explanationHtml = s.answered ? `
+        <div class="mt-5 p-4 sm:p-5 rounded-2xl border-2 animate-pop ${s.lastCorrect ? 'bg-emerald-50/90 border-emerald-200' : 'bg-rose-50/90 border-rose-200'}">
+          <div class="flex items-center justify-between gap-2 mb-2">
+            <div class="font-extrabold text-base ${s.lastCorrect ? 'text-emerald-800' : 'text-rose-800'}">
+              ${s.lastCorrect ? (s.correctMessage || CORRECT_MESSAGES[0]) : '😅 아쉽지만 오답이에요!'}
+            </div>
+            ${s.lastCorrect && s.combo >= 2 ? `<span class="px-2.5 py-1 rounded-full bg-amber-400 text-amber-950 text-xs font-extrabold combo-pulse">🔥 ${s.combo} 콤보!</span>` : ''}
+          </div>
+          ${wrongChoiceDetailHtml}
+          <div class="text-sm text-slate-700 leading-relaxed">
+            ${!s.lastCorrect ? '<span class="font-extrabold text-emerald-700">✅ 정답 해설: </span>' : ''}${q.explanation}
+          </div>
+          ${wrongTimelineDetailHtml}
+          <button id="btn-next-q" class="btn-3d mt-4 w-full py-3 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-extrabold text-sm transition">
+            ${s.index + 1 < total ? '다음 문제로 →' : '결과 확인하기 🏆'}
+          </button>
+        </div>
+      ` : '';
+
+      return `
+        <div class="space-y-4 animate-pop">
+          <!-- HUD -->
+          <div class="game-card rounded-2xl px-4 py-3 border border-white/80 flex items-center justify-between gap-3">
+            <button id="btn-quit-quiz" class="text-xs font-bold text-slate-500 hover:text-slate-800 px-2 py-1 rounded-lg hover:bg-slate-100 transition">
+              ← 나가기
+            </button>
+            <div class="flex-1 max-w-xs">
+              <div class="flex justify-between text-[11px] font-bold text-slate-500 mb-1">
+                <span>${s.mode === 'retry' ? '🔁 오답 복습 모드' : '진행도'}</span>
+                <span>${s.index + 1} / ${total}</span>
+              </div>
+              <div class="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
+                <div class="h-full bg-indigo-500 rounded-full transition-all duration-300" style="width: ${progressPct}%"></div>
+              </div>
+            </div>
+            <div class="flex items-center gap-2 text-xs font-extrabold">
+              <span class="px-2.5 py-1 rounded-lg bg-amber-100 text-amber-800">🔥 ${s.combo}</span>
+              <span class="px-2.5 py-1 rounded-lg bg-indigo-100 text-indigo-800">${s.score}점</span>
+            </div>
+          </div>
+
+          <!-- Question Card -->
+          <div class="game-card rounded-3xl p-5 sm:p-7 border border-white/80">
+            <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+              <div class="flex flex-wrap items-center gap-1.5">
+                <span class="px-2.5 py-1 rounded-lg text-xs font-bold border ${topicBadgeClass(q.topic)}">${q.topicLabel}</span>
+                <span class="px-2.5 py-1 rounded-lg text-xs font-bold bg-slate-100 text-slate-600">${q.levelLabel}</span>
+                <span class="px-2.5 py-1 rounded-lg text-xs font-bold ${q.type === 'timeline' ? 'bg-violet-100 text-violet-700' : 'bg-sky-100 text-sky-700'}">
+                  ${q.type === 'timeline' ? '⏳ 연표 맞추기' : '4지선다'}
+                </span>
+              </div>
+              ${!s.answered ? `
+                <button id="btn-hint" class="px-3 py-1 rounded-lg text-xs font-bold border transition ${s.hintUsed ? 'bg-amber-100 border-amber-300 text-amber-800' : 'bg-white border-slate-200 text-slate-600 hover:bg-amber-50 hover:border-amber-300'}">
+                  💡 힌트 ${s.hintUsed ? '열림' : '보기'}
+                </button>
+              ` : ''}
+            </div>
+
+            <h2 class="text-base sm:text-xl font-extrabold text-slate-900 leading-snug">${q.question}</h2>
+
+            ${s.hintUsed && !s.answered ? `
+              <div class="mt-3 p-3 rounded-xl bg-amber-50 border border-amber-200 text-xs sm:text-sm text-amber-900 font-medium animate-pop">
+                💡 <strong>힌트:</strong> ${q.hint}
+              </div>
+            ` : ''}
+
+            ${bodyHtml}
+            ${explanationHtml}
+          </div>
+        </div>
+      `;
+    }
+
+    function renderResult() {
+      const s = state.session;
+      const total = s.questions.length;
+      const pct = Math.round((s.correctCount / total) * 100);
+      const lv = getLevelInfo(state.profile.xp);
+      const leveledUp = lv.lv > s.prevLevel;
+      const wrongCount = s.wrongInSession.length;
+      const totalSavedWrong = state.profile.wrongIds.length;
+
+      let gradeEmoji = '👍';
+      let gradeMsg = '차근차근 감을 잡고 있어요!';
+      if (pct === 100) {
+        gradeEmoji = '👑';
+        gradeMsg = '완벽해요! 이제 역사 초보 탈출!';
+      } else if (pct >= 70) {
+        gradeEmoji = '🎉';
+        gradeMsg = '훌륭해요! 핵심 흐름이 잡히고 있어요!';
+      }
+
+      return `
+        <div class="space-y-4 animate-pop">
+          <section class="game-card rounded-3xl p-6 sm:p-8 border border-white/80 text-center">
+            <div class="text-5xl mb-2">${gradeEmoji}</div>
+            <h2 class="text-2xl font-extrabold text-slate-900">${s.mode === 'retry' ? '오답 복습 완료!' : '라운드 완료!'}</h2>
+            <p class="text-sm text-slate-500 mt-1">${gradeMsg}</p>
+
+            ${leveledUp ? `
+              <div class="mt-3 inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-gradient-to-r from-amber-400 to-orange-400 text-white font-extrabold text-xs shadow-md">
+                ✨ LEVEL UP! Lv.${lv.lv} ${lv.title} 달성!
+              </div>
+            ` : ''}
+
+            <div class="grid grid-cols-3 gap-3 mt-6">
+              <div class="p-3.5 rounded-2xl bg-indigo-50 border border-indigo-100">
+                <div class="text-xs font-bold text-indigo-600">점수</div>
+                <div class="text-xl sm:text-2xl font-extrabold text-indigo-950 mt-0.5">${s.score}</div>
+              </div>
+              <div class="p-3.5 rounded-2xl bg-emerald-50 border border-emerald-100">
+                <div class="text-xs font-bold text-emerald-600">정답률</div>
+                <div class="text-xl sm:text-2xl font-extrabold text-emerald-950 mt-0.5">${s.correctCount}/${total} (${pct}%)</div>
+              </div>
+              <div class="p-3.5 rounded-2xl bg-amber-50 border border-amber-100">
+                <div class="text-xs font-bold text-amber-700">획득 XP</div>
+                <div class="text-xl sm:text-2xl font-extrabold text-amber-950 mt-0.5">+${s.earnedXp}</div>
+              </div>
+            </div>
+
+            <div class="mt-6 flex flex-col sm:flex-row gap-3">
+              ${totalSavedWrong > 0 ? `
+                <button id="btn-res-retry" class="btn-3d flex-1 py-3.5 px-5 rounded-2xl bg-rose-600 hover:bg-rose-700 text-white font-extrabold text-sm shadow-lg shadow-rose-500/20 flex items-center justify-center gap-2">
+                  <span>🔁</span>
+                  <span>틀린 문제 다시 풀기 (${totalSavedWrong}개)</span>
+                </button>
+              ` : ''}
+              <button id="btn-res-again" class="btn-3d flex-1 py-3.5 px-5 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold text-sm shadow-lg shadow-indigo-500/20">
+                🚀 새 라운드 시작
+              </button>
+              <button id="btn-res-home" class="btn-3d py-3.5 px-5 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-sm">
+                홈으로
+              </button>
+            </div>
+          </section>
+
+          ${wrongCount > 0 ? `
+            <section class="game-card rounded-3xl p-5 sm:p-6 border border-white/80">
+              <h3 class="text-sm font-extrabold text-rose-700 mb-3">📝 이번 라운드 오답 노트 (${wrongCount}문제)</h3>
+              <div class="space-y-3">
+                ${s.wrongInSession.map(wq => `
+                  <div class="p-3.5 rounded-2xl bg-rose-50/60 border border-rose-100 text-sm">
+                    <div class="flex items-center gap-2 mb-1">
+                      <span class="text-[11px] font-bold px-2 py-0.5 rounded bg-white border border-rose-200 text-rose-700">${wq.topicLabel}</span>
+                      <span class="font-bold text-slate-900">${wq.question}</span>
+                    </div>
+                    ${wq.type === 'choice' && wq.userSelectedChoice !== null && wq.choiceExplanations ? `
+                      <p class="text-xs text-rose-700 font-semibold mt-1.5">❌ 내가 고른 보기(${wq.choices[wq.userSelectedChoice]}): ${wq.choiceExplanations[wq.userSelectedChoice]}</p>
+                    ` : ''}
+                    <p class="text-xs text-slate-600 leading-relaxed mt-1.5"><span class="font-bold text-emerald-700">✅ 정답 해설:</span> ${wq.explanation}</p>
+                  </div>
+                `).join('')}
+              </div>
+            </section>
+          ` : ''}
+        </div>
+      `;
+    }
+
+    // ==========================================
+    // 7. EVENT BINDINGS
+    // ==========================================
+    function bindHomeEvents() {
+      document.querySelectorAll('.topic-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          SoundFX.click();
+          state.settings.topic = btn.dataset.topic;
+          render();
+        });
+      });
+      document.querySelectorAll('.diff-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          SoundFX.click();
+          state.settings.difficulty = btn.dataset.diff;
+          render();
+        });
+      });
+      document.querySelectorAll('.count-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          SoundFX.click();
+          state.settings.count = Number(btn.dataset.count);
+          render();
+        });
+      });
+      document.getElementById('btn-start-quiz')?.addEventListener('click', () => startSession('normal'));
+      document.getElementById('btn-start-retry')?.addEventListener('click', () => {
+        if (state.profile.wrongIds.length > 0) {
+          startSession('retry');
+        } else {
+          showToast('아직 틀린 문제가 없어요! 퀴즈를 먼저 풀어보세요.');
+        }
+      });
+    }
+
+    function bindQuizEvents() {
+      document.getElementById('btn-quit-quiz')?.addEventListener('click', () => {
+        SoundFX.click();
+        state.view = 'home';
+        render();
+      });
+      document.getElementById('btn-hint')?.addEventListener('click', () => {
+        if (!state.session.hintUsed) {
+          SoundFX.click();
+          state.session.hintUsed = true;
+          render();
+        }
+      });
+      document.querySelectorAll('.choice-btn').forEach(btn => {
+        btn.addEventListener('click', () => handleChoiceAnswer(Number(btn.dataset.choice)));
+      });
+      document.querySelectorAll('.tl-pool-btn').forEach(btn => {
+        btn.addEventListener('click', () => handleTimelinePick(btn.dataset.pickId));
+      });
+      document.querySelectorAll('.tl-slot-btn').forEach(btn => {
+        btn.addEventListener('click', () => handleTimelineRemove(btn.dataset.removeId));
+      });
+      document.getElementById('btn-tl-reset')?.addEventListener('click', handleTimelineReset);
+      document.getElementById('btn-tl-submit')?.addEventListener('click', handleTimelineSubmit);
+      document.getElementById('btn-next-q')?.addEventListener('click', nextQuestion);
+    }
+
+    function bindResultEvents() {
+      document.getElementById('btn-res-retry')?.addEventListener('click', () => startSession('retry'));
+      document.getElementById('btn-res-again')?.addEventListener('click', () => startSession('normal'));
+      document.getElementById('btn-res-home')?.addEventListener('click', () => {
+        SoundFX.click();
+        state.view = 'home';
+        render();
+      });
+    }
+
+    // Global Header & Keyboard Events
+    document.getElementById('btn-home-logo').addEventListener('click', () => {
+      SoundFX.click();
+      state.view = 'home';
+      render();
+    });
+
+    document.getElementById('btn-sound-toggle').addEventListener('click', () => {
+      SoundFX.enabled = !SoundFX.enabled;
+      document.getElementById('sound-icon').textContent = SoundFX.enabled ? '🔊' : '🔇';
+      if (SoundFX.enabled) SoundFX.click();
+      showToast(SoundFX.enabled ? '효과음이 켜졌어요' : '효과음이 꺼졌어요');
+    });
+
+    const guideModal = document.getElementById('modal-guide');
+    const openGuide = () => {
+      SoundFX.click();
+      guideModal.classList.remove('hidden');
+      guideModal.classList.add('flex');
+    };
+    const closeGuide = () => {
+      SoundFX.click();
+      guideModal.classList.add('hidden');
+      guideModal.classList.remove('flex');
+    };
+    document.getElementById('btn-timeline-guide').addEventListener('click', openGuide);
+    document.getElementById('btn-close-guide').addEventListener('click', closeGuide);
+    document.getElementById('btn-close-guide-footer').addEventListener('click', closeGuide);
+    guideModal.addEventListener('click', (e) => {
+      if (e.target === guideModal) closeGuide();
+    });
+
+    document.addEventListener('keydown', (e) => {
+      if (state.view !== 'quiz') return;
+      const q = state.session.questions[state.session.index];
+      if (!state.session.answered && q && q.type === 'choice') {
+        if (['1', '2', '3', '4'].includes(e.key)) {
+          const idx = Number(e.key) - 1;
+          if (idx < q.choices.length) handleChoiceAnswer(idx);
+        }
+      } else if (state.session.answered && e.key === 'Enter') {
+        nextQuestion();
+      }
+    });
+
+    // Initial render
+    render();
+  </script>
+</body>
+</html>
